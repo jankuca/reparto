@@ -18,7 +18,7 @@ var git = new Git();
 var tcp = new Tcp();
 
 var router = new Router(http_server);
-var cluster = new Cluster(datagram_server);
+var cluster = new Cluster(datagram_server, tcp);
 var web_ui = new WebUi(router, cluster, git);
 
 

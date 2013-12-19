@@ -14,7 +14,7 @@ var git = new Git();
 var tcp_server = net.createServer();
 
 var app_manager = new ApplicationManager();
-var machine = new Machine(datagram_client, app_manager, git);
+var machine = new Machine(datagram_client, tcp_server, app_manager, git);
 
 
 datagram_client.setServerPort(process.env['PORT_DATAGRAM_SERVER'] || 5001);
