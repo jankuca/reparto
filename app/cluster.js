@@ -1,3 +1,4 @@
+var log = require('../lib/log');
 
 
 var Cluster = function (datagram_server, tcp) {
@@ -9,13 +10,16 @@ var Cluster = function (datagram_server, tcp) {
 };
 
 
+Cluster.prototype.log = log.create('cluster');
+
+
 Cluster.prototype.init = function () {
   this.datagram_server_.on('message', this.handleMessage_.bind(this));
 };
 
 
 Cluster.prototype.handleMessage_ = function (message, info) {
-  console.log(info, message);
+  this.log(info, message);
 
   switch (message['type']) {
   case 'new-machine':
@@ -36,7 +40,7 @@ Cluster.prototype.addMachine_ = function (address) {
 
 Cluster.prototype.connectToMachine_ = function (address) {
   var self = this;
-  console.log('connect to ' + address);
+  self.log('connect to ' + address);
 
   var socket = this.tcp_.connect(address);
   this.machine_connections_[address] = socket;
@@ -44,12 +48,12 @@ Cluster.prototype.connectToMachine_ = function (address) {
 
   socket.on('connect', function () {
     self.machine_statuses_[address] = 'up';
-    console.log('machines:', self.machine_statuses_);
+    self.log('machines:', self.machine_statuses_);
   });
 
   socket.on('close', function (had_err) {
     self.machine_statuses_[address] = 'down';
-    console.log('machines:', self.machine_statuses_);
+    self.log('machines:', self.machine_statuses_);
 
     if (!had_err) {
       self.connectToMachine_(address);
