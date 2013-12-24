@@ -23,47 +23,57 @@ Cluster.prototype.init = function () {
 Cluster.prototype.handleMessage_ = function (message, info) {
   switch (message['type']) {
   case 'new-machine':
-    this.addMachine_(info.address);
+    if (!message['tcp']) {
+      this.log('invalid new-machine datagram received, missing TCP port info');
+    } else {
+      this.log('new-machine datagram received (%s:%s)',
+          info.address, message['tcp']);
+      this.addMachine_(info.address, message['tcp']);
+    }
     break;
   }
 };
 
 
-Cluster.prototype.addMachine_ = function (address) {
-  var status = this.machine_statuses_[address];
-  if (!status) {
-    this.log('new machine %s', address);
+Cluster.prototype.addMachine_ = function (address, tcp_port) {
+  var key = address + ':' + tcp_port;
 
-    this.machine_statuses_[address] = 'new';
-    this.connectToMachine_(address);
+  var status = this.machine_statuses_[key];
+  if (!status) {
+    this.log('adding new machine (%s)', key);
+
+    this.machine_statuses_[key] = 'new';
+    this.connectToMachine_(address, tcp_port);
   }
 };
 
 
-Cluster.prototype.connectToMachine_ = function (address) {
+Cluster.prototype.connectToMachine_ = function (address, port) {
   var self = this;
-  self.log('connecting to ' + address);
+  var key = address + ':' + port;
 
-  var socket = this.tcp_.connect(address);
-  this.machine_connections_[address] = socket;
-  this.machine_statuses_[address] = 'connecting';
+  self.log('connecting to %s', key);
+
+  var socket = this.tcp_.connect(address, port);
+  this.machine_connections_[key] = socket;
+  this.machine_statuses_[key] = 'connecting';
 
   socket.on('connect', function () {
-    self.machine_statuses_[address] = 'up';
-    self.log('machine %s is up', address);
+    self.machine_statuses_[key] = 'up';
+    self.log('machine %s is up', key);
   });
 
   socket.on('close', function (had_err) {
-    self.machine_statuses_[address] = 'down';
-    self.log('machine %s is down', address);
+    self.machine_statuses_[key] = 'down';
+    self.log('machine %s is down', key);
 
     if (!had_err) {
-      self.connectToMachine_(address);
+      self.connectToMachine_(address, port);
     }
   });
 
   socket.on('error', function (err) {
-    setTimeout(self.connectToMachine_.bind(self, address), 1000);
+    setTimeout(self.connectToMachine_.bind(self, address, port), 1000);
   });
 };
 

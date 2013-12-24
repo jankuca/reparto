@@ -41,7 +41,8 @@ Machine.prototype.sendNewMachineDatagram_ = function () {
   var self = this;
 
   var datagram = new Datagram({
-    'type': 'new-machine'
+    'type': 'new-machine',
+    'tcp': this.tcp_server_.address().port
   });
   this.datagram_client_.send(datagram, function (err) {
     if (err) {

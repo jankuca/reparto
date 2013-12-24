@@ -24,7 +24,6 @@ var web_ui = new WebUi(router, cluster, git);
 
 datagram_server.bind(process.env['PORT_DATAGRAM_SERVER'] || 5001);
 git.setRepositoryDirectory(process.env['GIT_DIRNAME'] || os.tmpdir());
-tcp.setPort(process.env['PORT_TCP'] || 5003);
 
 
 http_server.listen(process.env['PORT'] || 5000);
