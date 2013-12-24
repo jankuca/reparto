@@ -20,7 +20,9 @@ Cluster.prototype.init = function () {
 };
 
 
-Cluster.prototype.handleMessage_ = function (message, info) {
+Cluster.prototype.handleMessage_ = function (datagram, info) {
+  var message = datagram.data;
+
   switch (message['type']) {
   case 'new-machine':
     if (!message['tcp']) {
