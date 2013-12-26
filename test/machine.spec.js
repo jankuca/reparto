@@ -12,6 +12,7 @@ describe('Machine', function () {
 
   beforeEach(function () {
     tcp_connection_listener_count = 0;
+    onTcpConnection = null;
 
     handleTcpServerListener = function (type, listener) {
       if (type === 'connection') {
