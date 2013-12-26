@@ -15,6 +15,9 @@ describe('Router', function () {
   };
 
   beforeEach(function () {
+    request_listener_count = 0;
+    onRequest = null;
+
     http_server = {
       on: function (type, listener) {
         if (type === 'request') {
