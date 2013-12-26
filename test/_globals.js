@@ -20,6 +20,12 @@ global.clearTimeout = function (id) {
   timeout_queue[id - 1] = null;
 };
 
+global.setTimeout.clear = function () {
+  timeout_queue.forEach(function (item, index) {
+    timeout_queue[index] = null;
+  });
+};
+
 global.setTimeout.flush = function (ms) {
   timeout_queue.forEach(function (item, index) {
     if (!item) return;
