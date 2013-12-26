@@ -1,6 +1,7 @@
 var dgram = require('dgram');
 var net = require('net');
 var os = require('os');
+var shell = require('shelljs');
 
 var ApplicationManager = require('./app/application-manager');
 var DatagramClient = require('./lib/datagram-client');
@@ -13,7 +14,7 @@ var datagram_client = new DatagramClient(datagram_socket);
 var git = new Git();
 var tcp_server = net.createServer();
 
-var app_manager = new ApplicationManager();
+var app_manager = new ApplicationManager(shell);
 var machine = new Machine(datagram_client, tcp_server, app_manager, git);
 
 

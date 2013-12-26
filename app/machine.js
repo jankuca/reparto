@@ -63,10 +63,26 @@ Machine.prototype.handleServerConnection_ = function (socket) {
   this.in_cluster_ = true;
   this.server_finding_timeout_ = 0;
 
+  socket.on('data', this.handleServerMessage_.bind(this));
+
   socket.on('close', function (had_err) {
     self.in_cluster_ = false;
     self.findServer_();
   });
+};
+
+
+Machine.prototype.handleServerMessage_ = function (json) {
+  var message = JSON.parse(json);
+
+  switch (message['type']) {
+  case 'start':
+    this.app_manager_.start(message['app'], message['branch']);
+    break;
+  case 'stop':
+    this.app_manager_.stop(message['app'], message['branch']);
+    break;
+  }
 };
 
 

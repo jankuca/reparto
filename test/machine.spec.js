@@ -168,4 +168,54 @@ describe('Machine', function () {
     setTimeout.flush();
     expect(count).to.be(3);
   });
+
+
+  it('should start an app based on a server message', function () {
+    var count = 0;
+    var _connection_listener;
+    var _data_listener;
+
+    var socket = {
+      on: function (type, listener) {
+        if (type === 'data') {
+          _data_listener = listener;
+        }
+      }
+    };
+
+    var app_manager = {
+      start: function (app, branch) {
+        count += 1;
+        _app = app;
+        _branch = branch;
+      }
+    };
+    var datagram_client = {
+      send: function (datagram) {}
+    };
+    var tcp_server = {
+      on: function (type, listener) {
+        if (type === 'connection') {
+          _connect_listener = listener;
+        }
+      },
+      address: function () { return { port: 1234 }; }
+    };
+
+    var machine = new Machine(datagram_client, tcp_server, app_manager, null);
+    machine.init();
+
+    _connect_listener(socket);
+
+    var start_message = JSON.stringify({
+      'type': 'start',
+      'app': 'abc',
+      'branch': 'master'
+    });
+    _data_listener(start_message);
+
+    expect(count).to.be(1);
+    expect(_app).to.be('abc');
+    expect(_branch).to.be('master');
+  });
 });

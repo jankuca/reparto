@@ -5,7 +5,10 @@
   "directories": {
     "test": "test"
   },
-  "dependencies": {},
+  "dependencies": {
+    "async": "0.2.x",
+    "shelljs": "0.2.x"
+  },
   "devDependencies": {
     "expect.js": "~0.2.0",
     "mocha": "~1.16.2"
