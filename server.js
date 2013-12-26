@@ -18,8 +18,9 @@ var git = new Git();
 var tcp = new Tcp();
 
 var router = new Router(http_server);
+var codebase_manager = new CodebaseManager(git);
 var cluster = new Cluster(datagram_server, tcp);
-var web_ui = new WebUi(router, cluster, git);
+var web_ui = new WebUi(router, cluster, codebase_manager);
 
 
 datagram_server.bind(process.env['PORT_DATAGRAM_SERVER'] || 5001);

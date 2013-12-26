@@ -1,4 +1,4 @@
-var http = require('http');
+var events = require('events');
 
 var WebUi = require('../app/web-ui');
 
@@ -59,7 +59,7 @@ describe('WebUi', function () {
     var web_ui = new WebUi(router, null, null);
     web_ui.init();
 
-    var req = new http.IncomingMessage();
+    var req = new events.EventEmitter();
     req.method = 'GET';
     req.url = '/abc';
     var res = {
@@ -71,5 +71,97 @@ describe('WebUi', function () {
     };
     onError(401, req, res);
     expect(code).to.be(401);
+  });
+
+
+  describe('codebase updates', function () {
+    var update_request = null;
+    var update_response = null;
+    var update_status_code = null;
+
+    var sendCodebaseUpdateRequest = function (body) {
+      update_request = new events.EventEmitter();
+      update_request.method = 'POST';
+      update_request.url = '/api/codebase/update';
+
+      update_response = {
+        writeHead: function (_code, _headers) {
+          update_status_code = _code;
+        },
+        write: function () {},
+        end: function () {}
+      };
+
+      onRequest('api:codebase:update', {}, update_request, update_response);
+
+      if (typeof body !== 'undefined') {
+        update_request.emit('data', new Buffer(body));
+      }
+      update_request.emit('end');
+    };
+
+    beforeEach(function () {
+      update_status_code = null;
+    });
+
+
+    it('should reject codebase update notifications of an unknown structure',
+        function () {
+      var updater_count = 0;
+      var info;
+
+      var codebase_manager = {
+        createUpdater: function (_info) {
+          expect(_info).to.eql(info);
+          updater_count += 1;
+          return null;
+        }
+      };
+
+      var web_ui = new WebUi(router, null, codebase_manager);
+      web_ui.init();
+
+      info = { 'abc': 'fake' };
+      sendCodebaseUpdateRequest(JSON.stringify(info));
+      expect(updater_count).to.be(1);
+      expect(update_status_code).to.be(415);
+    });
+
+
+    it('should accept codebase update notifications of a known structure',
+        function () {
+      var updater = {};
+      var updater_count = 0;
+      var update_call_count = 0;
+      var info;
+
+      var codebase_manager = {
+        createUpdater: function (_info) {
+          expect(_info).to.eql(info);
+          updater_count += 1;
+          return updater;
+        },
+        update: function (_updater, callback) {
+          expect(_updater).to.be(updater);
+          expect(callback).to.be.a('function');
+          update_call_count += 1;
+          callback(null);
+        }
+      };
+
+      var web_ui = new WebUi(router, null, codebase_manager);
+      web_ui.init();
+
+      info = {
+        'canon_url': 'https://bitbucket.org',
+        'commits': [],
+        'repository': {},
+        'user': 'ian'
+      };
+      sendCodebaseUpdateRequest(JSON.stringify(info));
+      expect(updater_count).to.be(1);
+      expect(update_call_count).to.be(1);
+      expect(update_status_code).to.be(200);
+    });
   });
 });
