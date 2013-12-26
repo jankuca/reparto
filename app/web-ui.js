@@ -14,8 +14,6 @@ WebUi.prototype.log = log.create('web-ui');
 WebUi.prototype.init = function () {
   this.router_.on('request', this.handleRequest_.bind(this));
   this.router_.on('error', this.handleError_.bind(this));
-
-  this.router_.init();
 };
 
 

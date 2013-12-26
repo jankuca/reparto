@@ -29,3 +29,4 @@ git.setRepositoryDirectory(process.env['GIT_DIRNAME'] || os.tmpdir());
 http_server.listen(process.env['PORT'] || 5000);
 web_ui.init();
 cluster.init();
+router.init();
