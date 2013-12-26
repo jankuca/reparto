@@ -51,7 +51,7 @@ Router.prototype.handleRequest_ = function (req, res) {
       });
 
       this.emitRequest_(route.target, params, req, res);
-      break;
+      return;
     }
   }
 
