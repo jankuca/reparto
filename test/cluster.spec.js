@@ -7,14 +7,14 @@ var Datagram = require('../lib/datagram');
 describe('Cluster', function () {
   it('should start listening for datagrams', function () {
     var count = 0;
-    var mock_method = function (type, listener) {
+    var handleDatagramServerListener = function (type, listener) {
       if (type === 'message') {
         count += 1;
         expect(listener).to.be.a('function');
       }
     };
 
-    var datagram_server = { on: mock_method };
+    var datagram_server = { on: handleDatagramServerListener };
     var cluster = new Cluster(datagram_server, null);
 
     cluster.init();

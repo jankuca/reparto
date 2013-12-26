@@ -7,7 +7,7 @@ var Machine = require('../app/machine');
 describe('Machine', function () {
   it('should start listening for server connections', function () {
     var count = 0;
-    var mock_method = function (type, listener) {
+    var handleTcpServerListener = function (type, listener) {
       if (type === 'connection') {
         count += 1;
         expect(listener).to.be.a('function');
@@ -16,7 +16,7 @@ describe('Machine', function () {
 
     var datagram_client = { send: function () {} };
     var tcp_server = {
-      on: mock_method,
+      on: handleTcpServerListener,
       address: function () { return { port: 1234 }; }
     };
     var machine = new Machine(datagram_client, tcp_server, null, null);
@@ -54,7 +54,7 @@ describe('Machine', function () {
       function () {
     var count = 0;
     var _connection_listener;
-    var mock_method = function (type, listener) {
+    var handleTcpServerListener = function (type, listener) {
       if (type === 'connection') {
         _connection_listener = listener;
       }
@@ -64,7 +64,7 @@ describe('Machine', function () {
       send: function (datagram) { count += 1; }
     };
     var tcp_server = {
-      on: mock_method,
+      on: handleTcpServerListener,
       address: function () { return { port: 1234 }; }
     };
     var machine = new Machine(datagram_client, tcp_server, null, null);
@@ -88,7 +88,7 @@ describe('Machine', function () {
   it('should send a new-machine datagram on server disconnect', function () {
     var _datagram;
     var _connection_listener;
-    var mock_method = function (type, listener) {
+    var handleTcpServerListener = function (type, listener) {
       if (type === 'connection') {
         _connection_listener = listener;
       }
@@ -106,7 +106,7 @@ describe('Machine', function () {
       send: function (datagram) { _datagram = datagram; }
     };
     var tcp_server = {
-      on: mock_method,
+      on: handleTcpServerListener,
       address: function () { return { port: 1234 }; }
     };
     var machine = new Machine(datagram_client, tcp_server, null, null);
@@ -127,7 +127,7 @@ describe('Machine', function () {
     var count = 0;
     var _connection_listener;
     var _close_listener;
-    var mock_method = function (type, listener) {
+    var handleTcpServerListener = function (type, listener) {
       if (type === 'connection') {
         _connection_listener = listener;
       }
@@ -145,7 +145,7 @@ describe('Machine', function () {
       send: function (datagram) { count += 1; }
     };
     var tcp_server = {
-      on: mock_method,
+      on: handleTcpServerListener,
       address: function () { return { port: 1234 }; }
     };
     var machine = new Machine(datagram_client, tcp_server, null, null);
