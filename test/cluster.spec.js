@@ -51,7 +51,7 @@ describe('Cluster', function () {
 
 
   it('should start listening for datagrams', function () {
-    var cluster = new Cluster(datagram_server, null);
+    var cluster = new Cluster(datagram_server, tcp);
 
     cluster.init();
     expect(datagram_listener_count).to.be(1);
