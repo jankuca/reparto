@@ -1,6 +1,9 @@
+var async = require('async');
 
 
-var CodebaseManager = function () {
+var CodebaseManager = function (repository_table) {
+  this.repository_table_ = repository_table;
+
   this.remote_handlers_ = [];
 };
 
@@ -20,6 +23,26 @@ CodebaseManager.prototype.parseUpdateNotification = function (info) {
   }
 
   return null;
+};
+
+
+CodebaseManager.prototype.update = function (update_info, callback) {
+  var repository = this.repository_table_.getRepository(update_info.url);
+  if (!repository) {
+    return callback(new Error('No local repository'));
+  }
+
+  async.series([
+    function (callback) {
+      repository.fetch('origin', callback);
+    },
+    function (callback) {
+      repository.clean({ directories: true, force: true }, callback);
+    },
+    function (callback) {
+      repository.reset('origin/master', { hard: true }, callback);
+    }
+  ], callback);
 };
 
 
