@@ -28,7 +28,7 @@ describe('CodebaseManager', function () {
     codebase_manager.addRemoteHandler({ canHandleUpdate: cannotHandleUpdate });
 
     info = {};
-    codebase_manager.createUpdater(info);
+    codebase_manager.parseUpdateNotification(info);
     expect(count).to.be(3);
   });
 
@@ -36,8 +36,8 @@ describe('CodebaseManager', function () {
   it('should stop the server handler loop when one can handle the update',
       function () {
     var count = 0;
-    var updater;
-    var updater_count = 0;
+    var update_info = {};
+    var parse_count = 0;
     var info;
 
     var canHandleUpdate = function (_info) {
@@ -53,10 +53,10 @@ describe('CodebaseManager', function () {
 
     var remote_handler = {
       canHandleUpdate: canHandleUpdate,
-      createUpdater: function (_info) {
+      parseUpdateNotification: function (_info) {
         expect(_info).to.be(info);
-        updater_count += 1;
-        return updater;
+        parse_count += 1;
+        return update_info;
       }
     };
 
@@ -66,8 +66,9 @@ describe('CodebaseManager', function () {
     codebase_manager.addRemoteHandler({ canHandleUpdate: cannotHandleUpdate });
 
     info = {};
-    var _updater = codebase_manager.createUpdater(info);
-    expect(_updater).to.be(updater);
+    var parsed = codebase_manager.parseUpdateNotification(info);
+    expect(parsed).to.be(update_info);
+    expect(parse_count).to.be(1);
     expect(count).to.be(2);
   });
 });
