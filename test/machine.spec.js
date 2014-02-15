@@ -24,7 +24,10 @@ describe('Machine', function () {
 
     tcp_server = {
       on: function (type, listener) {
-        handleTcpServerListener.call(this, type, listener)
+        handleTcpServerListener.call(this, type, listener);
+      },
+      once: function (type, listener) {
+        handleTcpServerListener.call(this, type, listener);
       },
       address: function () {
         return { port: 1234 };
@@ -86,6 +89,8 @@ describe('Machine', function () {
         expect(datagram_count).to.be(3);
 
         var socket = new events.EventEmitter();
+        socket.write = function () {};
+
         onTcpConnection(socket);
         setTimeout.flush();
         expect(datagram_count).to.be(3);
@@ -102,7 +107,13 @@ describe('Machine', function () {
               if (type === 'close') {
                 onClose = listener;
               }
-            }
+            },
+            once: function (type, listener) {
+              if (type === 'close') {
+                onClose = listener;
+              }
+            },
+            write: function () {}
           };
         });
 
@@ -166,7 +177,13 @@ describe('Machine', function () {
           if (type === 'data') {
             onData = listener;
           }
-        }
+        },
+        once: function (type, listener) {
+          if (type === 'data') {
+            onData = listener;
+          }
+        },
+        write: function () {}
       };
     });
 
@@ -224,4 +241,63 @@ describe('Machine', function () {
       expect(branch).to.be('master');
     });
   });
+
+
+  describe('roles', function () {
+    var datagram_client;
+    var socket;
+    var messages;
+
+    beforeEach(function () {
+      datagram_client = {
+        send: function (datagram) {}
+      };
+      socket = {
+        on: function (type, listener) {},
+        once: function (type, listener) {},
+        write: function (message, encoding, callback) {
+          messages.push({
+            data: message,
+            encoding: encoding,
+            callback: callback
+          });
+        }
+      };
+      messages = [];
+    });
+
+
+    it('should report its role to the server', function () {
+      var machine = new Machine(datagram_client, tcp_server, null, null);
+
+      machine.init(null, 'abc');
+      onTcpConnection(socket);
+
+      expect(messages.length).to.be(1);
+      expect(messages[0].data).to.be.a('string');
+
+      var message = JSON.parse(messages[0].data);
+      expect(message).to.be.an('object');
+      expect(message['type']).to.be('role');
+      expect(message['environment']).to.be('_default');
+      expect(message['roles']).to.eql([ 'abc' ]);
+    });
+
+
+    it('should support multiple roles', function () {
+      var machine = new Machine(datagram_client, tcp_server, null, null);
+
+      machine.init(null, [ 'abc', 'efg' ]);
+      onTcpConnection(socket);
+
+      expect(messages.length).to.be(1);
+      expect(messages[0].data).to.be.a('string');
+
+      var message = JSON.parse(messages[0].data);
+      expect(message).to.be.an('object');
+      expect(message['type']).to.be('role');
+      expect(message['environment']).to.be('_default');
+      expect(message['roles']).to.eql([ 'abc', 'efg' ]);
+    });
+  })
 });

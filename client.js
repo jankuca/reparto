@@ -26,4 +26,6 @@ git.setRepositoryDirectory(process.env['GIT_DIRNAME'] || os.tmpdir());
 
 
 tcp_server.listen(process.env['PORT_TCP'] || 5003);
-machine.init();
+
+var roles = process.env['ROLES'] ? process.env['ROLES'].split(',') : [];
+machine.init(process.env['ENVIRONMENT'] || '_default', roles);

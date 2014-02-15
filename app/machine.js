@@ -9,6 +9,9 @@ var Machine = function (datagram_client, tcp_server, app_manager, git) {
   this.app_manager_ = app_manager;
   this.git_ = git;
 
+  this.environment_ = '_default';
+  this.roles_ = [];
+
   this.in_cluster_ = false;
   this.server_finding_timeout_ = 0;
 };
@@ -17,7 +20,18 @@ var Machine = function (datagram_client, tcp_server, app_manager, git) {
 Machine.prototype.log = log.create('machine');
 
 
-Machine.prototype.init = function () {
+/**
+ * @param {string|null} environment
+ * @param {Array.<string>|string} roles
+ */
+Machine.prototype.init = function (environment, roles) {
+  if (environment) {
+    this.environment_ = environment;
+  }
+  if (roles) {
+    this.roles_ = (typeof roles === 'string') ? [ roles ] : roles.slice();
+  }
+
   this.tcp_server_.on('connection', this.handleServerConnection_.bind(this));
   this.findServer_();
 };
@@ -64,11 +78,12 @@ Machine.prototype.handleServerConnection_ = function (socket) {
   this.server_finding_timeout_ = 0;
 
   socket.on('data', this.handleServerMessage_.bind(this));
-
-  socket.on('close', function (had_err) {
+  socket.once('close', function (had_err) {
     self.in_cluster_ = false;
     self.findServer_();
   });
+
+  this.sendRoleMessage_(socket);
 };
 
 
@@ -83,6 +98,18 @@ Machine.prototype.handleServerMessage_ = function (json) {
     this.app_manager_.stop(message['app'], message['branch']);
     break;
   }
+};
+
+
+Machine.prototype.sendRoleMessage_ = function (socket) {
+  var message = {
+    'type': 'role',
+    'environment': this.environment_,
+    'roles': this.roles_
+  };
+
+  var json = JSON.stringify(message);
+  socket.write(json, 'utf8');
 };
 
 
