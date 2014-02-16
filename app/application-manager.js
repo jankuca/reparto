@@ -7,7 +7,7 @@ var ApplicationManager = function (shell) {
 
 
 ApplicationManager.prototype.start = function (app, branch, callback) {
-  var job_key = 'app$' + app + '$' + branch;
+  var job_key = 'app/' + app + '/' + branch;
   var command = 'start "' + job_key + '"';
 
   this.shell_.exec(command, { async: true }, function (code, output) {
@@ -21,7 +21,7 @@ ApplicationManager.prototype.start = function (app, branch, callback) {
 
 
 ApplicationManager.prototype.stop = function (app, branch, callback) {
-  var job_key = 'app$' + app + '$' + branch;
+  var job_key = 'app/' + app + '/' + branch;
   var command = 'stop "' + job_key + '"';
 
   this.shell_.exec(command, { async: true }, function (code, output) {
@@ -35,7 +35,7 @@ ApplicationManager.prototype.stop = function (app, branch, callback) {
 
 
 ApplicationManager.prototype.getStatus = function (app, branch, callback) {
-  var job_key = 'app$' + app + '$' + branch;
+  var job_key = 'app/' + app + '/' + branch;
   var command = 'status "' + job_key + '"';
 
   this.shell_.exec(command, { async: true }, function (code, output) {
@@ -63,13 +63,13 @@ ApplicationManager.prototype.getAllAppStatuses = function (app, callback) {
     } else {
       var list = output.trim().split('\n');
       list = list.filter(function (basename) {
-        var filter = new RegExp('^app\\$' + app + '\\$');
+        var filter = new RegExp('^app/' + app + '/');
         return filter.test(basename);
       });
 
       var branches = list.map(function (basename) {
         var branch = basename;
-        branch = branch.substr(4 + app.length + 1); // strip "app$APPNAME$"
+        branch = branch.substr(4 + app.length + 1); // strip "app/APPNAME/"
         branch = branch.substr(0, branch.length - 5); // strip ".conf"
         return branch;
       });
@@ -104,14 +104,14 @@ ApplicationManager.prototype.getAllStatuses = function (callback) {
     } else {
       var list = output.trim().split('\n');
       list = list.filter(function (basename) {
-        return /^app\$/.test(basename);
+        return /^app\//.test(basename);
       });
 
       var jobs = list.map(function (basename) {
         var job_key = basename;
-        job_key = job_key.substr(4); // strip "app$"
+        job_key = job_key.substr(4); // strip "app/"
         job_key = job_key.substr(0, job_key.length - 5); // strip ".conf"
-        return job_key.split('$');
+        return job_key.split('/');
       });
 
       var getStatus = function (job, callback) {

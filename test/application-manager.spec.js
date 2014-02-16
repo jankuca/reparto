@@ -27,7 +27,7 @@ describe('ApplicationManager', function () {
 
     app_manager.start('abc', 'master');
     expect(shell_command_count).to.be(1);
-    expect(last_shell_command).to.be('start "app$abc$master"');
+    expect(last_shell_command).to.be('start "app/abc/master"');
   });
 
 
@@ -36,7 +36,7 @@ describe('ApplicationManager', function () {
 
     app_manager.stop('abc', 'master');
     expect(shell_command_count).to.be(1);
-    expect(last_shell_command).to.be('stop "app$abc$master"');
+    expect(last_shell_command).to.be('stop "app/abc/master"');
   });
 
 
@@ -78,14 +78,14 @@ describe('ApplicationManager', function () {
     it('should return app status on command using upstart', function () {
       var app_manager = new ApplicationManager(shell);
 
-      statuses['app$abc$master'] = true;
+      statuses['app/abc/master'] = true;
       app_manager.getStatus('abc', 'master', onResult);
       expect(shell_command_count).to.be(1);
       expect(status_callback_count).to.be(1);
-      expect(last_shell_command).to.be('status "app$abc$master"');
+      expect(last_shell_command).to.be('status "app/abc/master"');
       expect(result).to.be(true);
 
-      statuses['app$abc$master'] = false;
+      statuses['app/abc/master'] = false;
       app_manager.getStatus('abc', 'master', onResult);
       expect(shell_command_count).to.be(2);
       expect(status_callback_count).to.be(2);
@@ -95,9 +95,9 @@ describe('ApplicationManager', function () {
 
     it('should return app statuses for each branch on command using upstart',
         function () {
-      statuses['app$abc$master'] = false;
-      statuses['app$abc$slave'] = true;
-      statuses['app$efg$master'] = true;
+      statuses['app/abc/master'] = false;
+      statuses['app/abc/slave'] = true;
+      statuses['app/efg/master'] = true;
 
       var app_manager = new ApplicationManager(shell);
 
@@ -114,9 +114,9 @@ describe('ApplicationManager', function () {
 
 
     it('should return all app statuses on command using upstart', function () {
-      statuses['app$abc$master'] = false;
-      statuses['app$abc$slave'] = true;
-      statuses['app$efg$master'] = true;
+      statuses['app/abc/master'] = false;
+      statuses['app/abc/slave'] = true;
+      statuses['app/efg/master'] = true;
 
       var app_manager = new ApplicationManager(shell);
 
