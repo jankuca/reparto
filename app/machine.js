@@ -102,6 +102,8 @@ Machine.prototype.handleServerMessage_ = function (json) {
 
 
 Machine.prototype.sendRoleMessage_ = function (socket) {
+  var self = this;
+
   var message = {
     'type': 'role',
     'environment': this.environment_,
@@ -109,7 +111,9 @@ Machine.prototype.sendRoleMessage_ = function (socket) {
   };
 
   var json = JSON.stringify(message);
-  socket.write(json, 'utf8');
+  socket.write(json, 'utf8', function () {
+    self.log('role message sent');
+  });
 };
 
 
