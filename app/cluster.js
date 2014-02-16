@@ -1,9 +1,11 @@
+var async = require('async');
 var log = require('../lib/log');
 
 
-var Cluster = function (datagram_server, tcp) {
+var Cluster = function (datagram_server, tcp, config) {
   this.datagram_server_ = datagram_server;
   this.tcp_ = tcp;
+  this.config_ = config;
 
   this.machine_connections_ = {};
   this.machine_statuses_ = {};
@@ -74,8 +76,46 @@ Cluster.prototype.connectToMachine_ = function (address, port) {
     }
   });
 
+  socket.on('message', function (json) {
+    var message = JSON.parse(json);
+    self.handleTcpMessage_(socket, message);
+  });
+
   socket.on('error', function (err) {
     setTimeout(self.connectToMachine_.bind(self, address, port), 1000);
+  });
+};
+
+
+Cluster.prototype.handleTcpMessage_ = function (socket, message) {
+  var self = this;
+
+  switch (message['type']) {
+  case 'role':
+    var listRoleApps = this.listRoleApps_.bind(this);
+    async.map(message['roles'], listRoleApps, function (err, app_lists) {
+      var apps = [];
+      Object.keys(app_lists).forEach(function (app) {
+        apps = apps.concat(app_lists[app]);
+      });
+
+      socket.write(JSON.stringify({
+        'type': 'apps',
+        'apps': apps
+      }));
+    });
+    break;
+  }
+};
+
+
+Cluster.prototype.listRoleApps_ = function (role_id, done) {
+  this.config_.get('roles', role_id, function (err, role) {
+    if (err) {
+      self.log('failed to list apps for role (%s)', role_id);
+      return done(err, []);
+    }
+    done(null, role ? role['apps'] || [] : []);
   });
 };
 

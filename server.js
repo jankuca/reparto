@@ -25,7 +25,8 @@ var tcp = new Tcp();
 var repository_table = new RepositoryTable(git);
 var router = new Router(http_server);
 var codebase_manager = new CodebaseManager(repository_table);
-var cluster = new Cluster(datagram_server, tcp);
+var config = new ConfigRepository(codebase_manager.getRepository('_config'));
+var cluster = new Cluster(datagram_server, tcp, config);
 var web_ui = new WebUi(router, cluster, codebase_manager);
 
 

@@ -160,4 +160,52 @@ describe('Cluster', function () {
       expect(tcp_connection_count).to.be(1);
     });
   });
+
+
+  describe('roles', function () {
+    var createConfigRepository = function (data) {
+      return {
+        get: function (collection, key, callback) {
+          var collection = data[collection] || {};
+          var item = collection[key] || null;
+          callback(null, item);
+        },
+        set: function (collection, key, value, callback) {
+          data[collection] = data[collection] || {};
+          value['_id'] = key;
+          data[collection][key] = value;
+          callback(null);
+        }
+      };
+    };
+
+    var connect = function () {
+      var datagram = new Datagram({ 'type': 'new-machine', 'tcp': 1234 });
+      var info = { address: '123.1.1.1' };
+      onDatagram(datagram, info);
+    };
+
+
+    it('should provide machines with app lists in response to a role message',
+        function () {
+      var role = { 'apps': [ 'api', 'ui' ]};
+      var config = createConfigRepository({
+        'roles': { 'abc': role }
+      });
+
+      var cluster = new Cluster(datagram_server, tcp, config);
+      cluster.init();
+      connect();
+
+      socket.emit('message', JSON.stringify({
+        'type': 'role',
+        'environment': 'production',
+        'roles': [ 'abc' ]
+      }));
+
+      expect(tcp_messages.length).to.be(1);
+      expect(tcp_messages[0]['type']).to.be('apps');
+      expect(tcp_messages[0]['apps']).to.eql(role['apps']);
+    });
+  });
 });
