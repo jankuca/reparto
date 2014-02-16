@@ -12,6 +12,7 @@ describe('Cluster', function () {
   var tcp_connection_port = null;
   var tcp_connection_count = 0;
   var socket = null;
+  var tcp_messages = null;
   var onDatagram = null;
 
   beforeEach(function () {
@@ -20,6 +21,7 @@ describe('Cluster', function () {
     tcp_connection_port = null;
     tcp_connection_count = 0;
     socket = null;
+    tcp_messages = [];
     onDatagram = null;
 
     handleDatagramServerListener = function (type, listener) {
@@ -42,7 +44,12 @@ describe('Cluster', function () {
         tcp_connection_address = address;
         tcp_connection_port = port;
 
-        return socket || new events.EventEmitter();
+        socket = socket || new events.EventEmitter();
+        socket.write = function (json) {
+          tcp_messages.push(JSON.parse(json));
+        };
+
+        return socket;
       }
     };
 
@@ -101,24 +108,6 @@ describe('Cluster', function () {
 
 
   describe('reconnect', function () {
-    var onClose = null;
-    var onError = null;
-
-    beforeEach(function () {
-      onClose = null;
-      onError = null;
-
-      socket = {
-        on: function (type, listener) {
-          switch (type) {
-          case 'close': onClose = listener; break;
-          case 'error': onError = listener; break;
-          }
-        }
-      };
-    });
-
-
     it('should try to reconnect on machine disconnect', function () {
       var cluster = new Cluster(datagram_server, tcp);
       cluster.init();
@@ -128,7 +117,7 @@ describe('Cluster', function () {
       onDatagram(datagram, info);
       tcp_connection_count = 0;
 
-      onClose(false);
+      socket.emit('close', false);
       setTimeout.flush();
       expect(tcp_connection_count).to.be(1);
     });
@@ -143,8 +132,8 @@ describe('Cluster', function () {
       onDatagram(datagram, info);
       tcp_connection_count = 0;
 
-      onError(new Error());
-      onClose(true);
+      socket.emit('error', new Error());
+      socket.emit('close', true);
       setTimeout.flush();
       expect(tcp_connection_count).to.be(1);
     });
@@ -160,8 +149,8 @@ describe('Cluster', function () {
       onDatagram(datagram, info);
       tcp_connection_count = 0;
 
-      onError(new Error());
-      onClose(true);
+      socket.emit('error', new Error());
+      socket.emit('close', true);
       expect(tcp_connection_count).to.be(0);
 
       setTimeout.flush(900);
