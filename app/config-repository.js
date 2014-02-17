@@ -2,6 +2,11 @@ var git = require('nodegit');
 
 
 var ConfigRepository = function (repo) {
+  this.repo_ = repo || null;
+};
+
+
+ConfigRepository.prototype.setRepository = function (repo) {
   this.repo_ = repo;
 };
 
