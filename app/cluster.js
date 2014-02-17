@@ -2,10 +2,11 @@ var async = require('async');
 var log = require('../lib/log');
 
 
-var Cluster = function (datagram_server, tcp, config) {
+var Cluster = function (datagram_server, tcp, config, codebase_manager) {
   this.datagram_server_ = datagram_server;
   this.tcp_ = tcp;
   this.config_ = config;
+  this.codebase_manager_ = codebase_manager;
 
   this.machine_connections_ = {};
   this.machine_statuses_ = {};
@@ -92,20 +93,28 @@ Cluster.prototype.handleTcpMessage_ = function (socket, message) {
 
   switch (message['type']) {
   case 'role':
-    var listRoleApps = this.listRoleApps_.bind(this);
-    async.map(message['roles'], listRoleApps, function (err, app_lists) {
-      var apps = [];
-      Object.keys(app_lists).forEach(function (app) {
-        apps = apps.concat(app_lists[app]);
-      });
-
-      socket.write(JSON.stringify({
-        'type': 'apps',
-        'apps': apps
-      }));
-    });
+    this.handleRoleMessage_(socket, message);
+    break;
+  case 'versions':
+    this.handleVersionMessage_(socket, message);
     break;
   }
+};
+
+
+Cluster.prototype.handleRoleMessage_ = function (socket, message) {
+  var listRoleApps = this.listRoleApps_.bind(this);
+  async.map(message['roles'], listRoleApps, function (err, app_lists) {
+    var apps = [];
+    Object.keys(app_lists).forEach(function (app) {
+      apps = apps.concat(app_lists[app]);
+    });
+
+    socket.write(JSON.stringify({
+      'type': 'apps',
+      'apps': apps
+    }));
+  });
 };
 
 
@@ -117,6 +126,68 @@ Cluster.prototype.listRoleApps_ = function (role_id, done) {
     }
     done(null, role ? role['apps'] || [] : []);
   });
+};
+
+
+Cluster.prototype.handleVersionMessage_ = function (socket, message) {
+  var self = this;
+
+  var getCurrentVersion = function (app, done) {
+    self.codebase_manager_.getCurrentVersion(app, done);
+  };
+
+  var remote_versions = message['apps'] || {};
+  var remote_apps = Object.keys(remote_versions);
+
+  async.map(remote_apps, getCurrentVersion, function (err, versions) {
+    var instructions = {
+      remove: [],
+      install: {},
+      upgrade: {}
+    };
+
+    Object.keys(remote_versions).forEach(function (app, i) {
+      var version = versions[i];
+      var remote_version = remote_versions[app];
+
+      if (!remote_version) {
+        if (version) {
+          instructions.install[app] = version;
+        }
+      } else {
+        if (!version) {
+          instructions.remove.push(app);
+        } else if (remote_version !== version) {
+          instructions.upgrade[app] = version;
+        }
+      }
+    });
+
+    self.instructMachineToModifyApps_(socket, instructions);
+  });
+};
+
+
+Cluster.prototype.instructMachineToModifyApps_ = function (
+    socket, instructions) {
+  if (instructions.remove && instructions.remove.length > 0) {
+    socket.write(JSON.stringify({
+      'type': 'remove',
+      'apps': instructions.remove
+    }));
+  }
+  if (instructions.install && Object.keys(instructions.install).length > 0) {
+    socket.write(JSON.stringify({
+      'type': 'install',
+      'apps': instructions.install
+    }));
+  }
+  if (instructions.upgrade && Object.keys(instructions.upgrade).length > 0) {
+    socket.write(JSON.stringify({
+      'type': 'upgrade',
+      'apps': instructions.upgrade
+    }));
+  }
 };
 
 

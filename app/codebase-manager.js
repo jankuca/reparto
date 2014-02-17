@@ -46,4 +46,16 @@ CodebaseManager.prototype.update = function (update_info, callback) {
 };
 
 
+CodebaseManager.prototype.getCurrentVersion = function (app, callback) {
+  var repository = this.repository_table_.getRepository(app);
+  if (!repository) {
+    return callback(null, null);
+  }
+
+  repository.getRevisionSha('refs/heads/master', function (err, sha) {
+    callback(err, err ? null : sha);
+  });
+};
+
+
 module.exports = CodebaseManager;

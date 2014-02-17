@@ -162,7 +162,7 @@ describe('Cluster', function () {
   });
 
 
-  describe('roles', function () {
+  describe('client control', function () {
     var createConfigRepository = function (data) {
       return {
         get: function (collection, key, callback) {
@@ -186,26 +186,108 @@ describe('Cluster', function () {
     };
 
 
-    it('should provide machines with app lists in response to a role message',
-        function () {
-      var role = { 'apps': [ 'api', 'ui' ]};
-      var config = createConfigRepository({
-        'roles': { 'abc': role }
+    describe('roles', function () {
+      it('should provide machines with app lists in response to a role message',
+          function () {
+        var role = { 'apps': [ 'api/master', 'ui/master' ]};
+        var config = createConfigRepository({
+          'roles': { 'abc': role }
+        });
+
+        var cluster = new Cluster(datagram_server, tcp, config);
+        cluster.init();
+        connect();
+
+        socket.emit('message', JSON.stringify({
+          'type': 'role',
+          'environment': 'production',
+          'roles': [ 'abc' ]
+        }));
+
+        expect(tcp_messages.length).to.be(1);
+        expect(tcp_messages[0]['type']).to.be('apps');
+        expect(tcp_messages[0]['apps']).to.eql(role['apps']);
+      });
+    });
+
+
+    describe('apps', function () {
+      it('should instruct machines to install new apps', function () {
+        var current_version_count = 0;
+        var codebase = {
+          getCurrentVersion: function (app, callback) {
+            current_version_count += 1;
+            expect(app).to.be('api');
+            callback(null, 'aaaa1111');
+          }
+        };
+
+        var cluster = new Cluster(datagram_server, tcp, null, codebase);
+        cluster.init();
+        connect();
+
+        socket.emit('message', JSON.stringify({
+          'type': 'versions',
+          'apps': { 'api': null }
+        }));
+
+        expect(current_version_count).to.be(1);
+        expect(tcp_messages.length).to.be(1);
+        expect(tcp_messages[0]['type']).to.be('install');
+        expect(tcp_messages[0]['apps']).to.eql({ 'api': 'aaaa1111' });
       });
 
-      var cluster = new Cluster(datagram_server, tcp, config);
-      cluster.init();
-      connect();
 
-      socket.emit('message', JSON.stringify({
-        'type': 'role',
-        'environment': 'production',
-        'roles': [ 'abc' ]
-      }));
+      it('should instruct machines to uninstall old apps', function () {
+        var current_version_count = 0;
+        var codebase = {
+          getCurrentVersion: function (app, callback) {
+            current_version_count += 1;
+            expect(app).to.be('api');
+            callback(null, null);
+          }
+        };
 
-      expect(tcp_messages.length).to.be(1);
-      expect(tcp_messages[0]['type']).to.be('apps');
-      expect(tcp_messages[0]['apps']).to.eql(role['apps']);
+        var cluster = new Cluster(datagram_server, tcp, null, codebase);
+        cluster.init();
+        connect();
+
+        socket.emit('message', JSON.stringify({
+          'type': 'versions',
+          'apps': { 'api': 'aaaa1111' }
+        }));
+
+        expect(current_version_count).to.be(1);
+        expect(tcp_messages.length).to.be(1);
+        expect(tcp_messages[0]['type']).to.be('remove');
+        expect(tcp_messages[0]['apps']).to.eql([ 'api' ]);
+      });
+
+
+      it('should instruct machines to upgrade apps', function () {
+        var current_version_count = 0;
+        var codebase = {
+          getCurrentVersion: function (app, callback) {
+            current_version_count += 1;
+            expect(app).to.be('api');
+            callback(null, 'bbbb2222');
+          }
+        };
+
+        var cluster = new Cluster(datagram_server, tcp, null, codebase);
+        cluster.init();
+        connect();
+
+        socket.emit('message', JSON.stringify({
+          'type': 'versions',
+          'apps': { 'api': 'aaaa1111' }
+        }));
+
+        expect(current_version_count).to.be(1);
+        expect(tcp_messages.length).to.be(1);
+        expect(tcp_messages[0]['type']).to.be('upgrade');
+        expect(tcp_messages[0]['apps']).to.eql({ 'api': 'bbbb2222' });
+      });
     });
   });
 });
