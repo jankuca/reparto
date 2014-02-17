@@ -27,7 +27,7 @@ CodebaseManager.prototype.parseUpdateNotification = function (info) {
 
 
 CodebaseManager.prototype.update = function (update_info, callback) {
-  var repository = this.repository_table_.getRepository(update_info.url);
+  var repository = this.repository_table_.getRepositoryByUrl(update_info.url);
   if (!repository) {
     return callback(new Error('No local repository'));
   }

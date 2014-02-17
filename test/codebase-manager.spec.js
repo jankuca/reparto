@@ -99,7 +99,7 @@ describe('CodebaseManager', function () {
     };
 
     var repository_table = {
-      getRepository: function (url) {
+      getRepositoryByUrl: function (url) {
         expect(url).to.be(update_info.url);
         repository_count += 1;
         return repository;

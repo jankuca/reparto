@@ -1,53 +1,82 @@
 var os = require('os');
 var path = require('path');
 
+var Repository = require('../app/repository');
 var RepositoryTable = require('../app/repository-table');
 
 
 describe('RepositoryTable', function () {
+  var createConfigRepository = function (data) {
+    return {
+      get: function (collection, key, callback) {
+        var collection = data[collection] || {};
+        var item = collection[key] || null;
+        callback(null, item);
+      },
+      set: function (collection, key, value, callback) {
+        data[collection] = data[collection] || {};
+        value['_id'] = key;
+        data[collection][key] = value;
+        callback(null);
+      }
+    };
+  };
+
+
   it('should allow dirname changes', function () {
     var table = new RepositoryTable(null);
     table.setDirectory('/tmp');
   });
 
 
-  it('should ask for a repository object and return it', function () {
-    var repo_dirname;
-    var repository = {};
-    var git = {
-      createRepository: function (_repo_dirname) {
-        repo_dirname = _repo_dirname;
-        return repository;
-      }
+  it('should ask for a repository object by name and return it', function () {
+    var config = createConfigRepository({
+      'apps': { 'abc': { 'remote': 'git://example.com/abc.git' }}
+    });
+
+    var table = new RepositoryTable(config);
+    var dirname = os.tmpdir();
+    table.setDirectory(dirname);
+
+    var repository = table.getRepository('abc');
+    expect(repository).to.be.a(Repository);
+  });
+
+
+  it('should ask for a repository object by URL and return it', function () {
+    var repo_url = 'git://example.com/abc.git';
+    var config = {
+      get: function (collection, key, callback) {
+        callback(null, { '_id': 'abc', 'remote': repo_url });
+      },
+      set: function () {}
     };
 
-    var table = new RepositoryTable(git);
-    table.setDirectory('/tmp');
+    var table = new RepositoryTable(config);
+    table.setDirectory(os.tmpdir());
 
-    var _repo = table.getRepository('git://github.com/jankuca/reparto.git');
-    expect(repo_dirname).to.be.a('string');
-    expect(_repo).to.be(repository);
+    var count = 0;
+    table.getRepositoryByUrl(repo_url, function (err, repo) {
+      count += 1;
+      expect(err).to.be(null);
+      expect(repo).to.be.a(Repository);
+    });
+    expect(count).to.be(1);
   });
 
 
   it('should place repositories directly into the specified base directory',
       function () {
-    var dirname = path.join(os.tmpdir(), 'repos');
-    var repo_dirname;
-    var git = {
-      createRepository: function (_repo_dirname) {
-        repo_dirname = _repo_dirname;
-        return {};
-      }
-    };
+    var config = createConfigRepository({
+      'apps': { 'abc': { 'remote': 'git://example.com/abc.git' }}
+    });
 
-    var table = new RepositoryTable(git);
+    var table = new RepositoryTable(config);
+    var dirname = path.join(os.tmpdir(), 'repos');
     table.setDirectory(dirname);
 
-    table.getRepository('git://github.com/jankuca/reparto.git');
-    var basename = path.basename(repo_dirname);
-    var rel = path.relative(dirname, repo_dirname);
-    expect(rel.substr('..')).to.not.be('..');
-    expect(path.join(dirname, basename)).to.be(repo_dirname);
+    var repo = table.getRepository('abc');
+    expect(repo).to.be.a(Repository);
+    expect(repo.getDirectory()).to.be(path.join(dirname, 'abc'));
   });
 });

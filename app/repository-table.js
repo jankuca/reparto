@@ -1,9 +1,10 @@
-var crypto = require('crypto');
 var path = require('path');
 
+var Repository = require('./repository');
 
-var RepositoryTable = function (git) {
-  this.git_ = git;
+
+var RepositoryTable = function (config) {
+  this.config_ = config;
 
   this.dirname_ = null;
 };
@@ -14,16 +15,25 @@ RepositoryTable.prototype.setDirectory = function (dirname) {
 };
 
 
-RepositoryTable.prototype.getRepository = function (repo_url) {
-  var repo_hash = crypto.createHash('md5');
-  repo_hash.update(repo_url);
+RepositoryTable.prototype.getRepository = function (repo_id) {
+  var repo_dirname = path.join(this.dirname_, repo_id);
+  var repository = new Repository(repo_dirname);
 
-  var repo_slug = repo_url.split('/').slice(-1)[0].split('.')[0];
-  var basename = repo_hash.digest('hex') + '-' + repo_slug;
-  var repo_dirname = path.join(this.dirname_, basename);
-
-  var repository = this.git_.createRepository(repo_dirname);
   return repository;
+};
+
+
+RepositoryTable.prototype.getRepositoryByUrl = function (repo_url, callback) {
+  var self = this;
+
+  this.config_.get('apps', { 'remote': repo_url }, function (err, app) {
+    if (err || !app) {
+      return callback(err || null, null);
+    }
+
+    var repository = self.getRepository(app['_id']);
+    callback(null, repository);
+  });
 };
 
 
