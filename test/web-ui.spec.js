@@ -107,13 +107,13 @@ describe('WebUi', function () {
 
     it('should reject codebase update notifications of an unknown structure',
         function () {
-      var updater_count = 0;
+      var notification_count = 0;
       var info;
 
       var codebase_manager = {
-        createUpdater: function (_info) {
+        parseUpdateNotification: function (_info) {
           expect(_info).to.eql(info);
-          updater_count += 1;
+          notification_count += 1;
           return null;
         }
       };
@@ -123,26 +123,26 @@ describe('WebUi', function () {
 
       info = { 'abc': 'fake' };
       sendCodebaseUpdateRequest(JSON.stringify(info));
-      expect(updater_count).to.be(1);
+      expect(notification_count).to.be(1);
       expect(update_status_code).to.be(415);
     });
 
 
     it('should accept codebase update notifications of a known structure',
         function () {
-      var updater = {};
-      var updater_count = 0;
+      var update_info = {};
+      var notification_count = 0;
       var update_call_count = 0;
       var info;
 
       var codebase_manager = {
-        createUpdater: function (_info) {
+        parseUpdateNotification: function (_info) {
           expect(_info).to.eql(info);
-          updater_count += 1;
-          return updater;
+          notification_count += 1;
+          return update_info;
         },
-        update: function (_updater, callback) {
-          expect(_updater).to.be(updater);
+        update: function (_update_info, callback) {
+          expect(_update_info).to.be(update_info);
           expect(callback).to.be.a('function');
           update_call_count += 1;
           callback(null);
@@ -159,7 +159,7 @@ describe('WebUi', function () {
         'user': 'ian'
       };
       sendCodebaseUpdateRequest(JSON.stringify(info));
-      expect(updater_count).to.be(1);
+      expect(notification_count).to.be(1);
       expect(update_call_count).to.be(1);
       expect(update_status_code).to.be(200);
     });

@@ -58,15 +58,15 @@ WebUi.prototype.handleCodebaseUpdateRequest_ = function (req, res) {
       return;
     }
 
-    var updater = self.codebase_manager_.createUpdater(info);
-    if (!updater) {
+    var update_info = self.codebase_manager_.parseUpdateNotification(info);
+    if (!update_info) {
       self.log('Unknown api:codebase:update request type');
       res.writeHead(415);
       res.end();
       return;
     }
 
-    self.codebase_manager_.update(updater, function (err) {
+    self.codebase_manager_.update(update_info, function (err) {
       res.writeHead(err ? 500 : 200);
       res.end();
     });
