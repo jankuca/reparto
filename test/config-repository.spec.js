@@ -44,6 +44,47 @@ describe('ConfigRepository', function () {
   });
 
 
+  it('should retrieve a row from a collection based on a selector object',
+      function () {
+    var count = 0;
+    var repo = new MockRepository();
+    repo.addFile('config/abc',
+        'a { "_id": "a", "a": "x", "b": 2 }\n' +
+        'b { "_id": "b", "a": "y", "b": 2 }\n' +
+        'c { "_id": "c", "a": "z", "b": 3 }\n');
+
+    var config = new ConfigRepository(repo);
+    async.series([
+      function (done) {
+        config.get('abc', { 'a': 'y' }, function (err, item) {
+          count += 1;
+          expect(err).to.not.be.ok();
+          expect(item).to.eql({ '_id': 'b', 'a': 'y', 'b': 2 });
+          done(null);
+        });
+      },
+      function (done) {
+        config.get('abc', { 'b': 2 }, function (err, item) {
+          count += 1;
+          expect(err).to.not.be.ok();
+          expect(item).to.eql({ '_id': 'a', 'a': 'x', 'b': 2 });
+          done(null);
+        });
+      },
+      function (done) {
+        config.get('abc', { 'a': 'z', 'b': 3 }, function (err, item) {
+          count += 1;
+          expect(err).to.not.be.ok();
+          expect(item).to.eql({ '_id': 'c', 'a': 'z', 'b': 3 });
+          done(null);
+        });
+      }
+    ]);
+
+    expect(count).to.be(3);
+  });
+
+
   it('should store a row in a collection', function () {
     var count = 0;
     var repo = new MockRepository();

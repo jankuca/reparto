@@ -6,15 +6,27 @@ var ConfigRepository = function (repo) {
 };
 
 
-ConfigRepository.prototype.get = function (collection, key, callback) {
+ConfigRepository.prototype.get = function (collection, selector, callback) {
   this.getJsonCollection_(collection, function (err, jsons, commit) {
     if (err) {
       return callback(err);
     }
 
-    var json = jsons[key] || 'null';
-    var item = JSON.parse(json);
-    callback(null, item);
+    if (typeof selector === 'object') {
+      Object.keys(jsons).some(function (key) {
+        var item = JSON.parse(jsons[key]);
+        var matches = Object.keys(selector).every(function (key) {
+          return (item[key] === selector[key]);
+        });
+        if (matches) {
+          callback(null, item);
+          return true;
+        }
+      });
+    } else {
+      var json = jsons[selector] || 'null';
+      callback(null, JSON.parse(json));
+    }
   });
 };
 
@@ -94,7 +106,7 @@ ConfigRepository.prototype.saveJsonCollection_ = function (
 
   commit.getTree(function (err, tree) {
     var builder = tree.builder();
-    var buffer = new Buffer(lines.join('\n'));
+    var buffer = new Buffer(lines.join('\n') + '\n');
 
     builder.insertBlob(filename, buffer);
     builder.write(function (err, new_tree_id) {
