@@ -99,22 +99,10 @@ describe('Machine', function () {
 
       describe('reconnect', function () {
         var socket = null;
-        var onClose;
 
         beforeEach(function () {
-          socket = {
-            on: function (type, listener) {
-              if (type === 'close') {
-                onClose = listener;
-              }
-            },
-            once: function (type, listener) {
-              if (type === 'close') {
-                onClose = listener;
-              }
-            },
-            write: function () {}
-          };
+          socket = new events.EventEmitter();
+          socket.write = function () {};
         });
 
 
@@ -127,7 +115,7 @@ describe('Machine', function () {
           datagram_count = 0;
 
           onTcpConnection(socket);
-          onClose(false);
+          socket.emit('close', false);
           expect(datagram_count).to.be(1);
           expect(datagram).to.be.a(Datagram);
           expect(datagram.data['type']).to.be('new-machine');
@@ -144,7 +132,7 @@ describe('Machine', function () {
           datagram = null;
           datagram_count = 0;
 
-          onClose(false);
+          socket.emit('close', false);
           setTimeout.flush(0);
           expect(datagram_count).to.be(1);
 
@@ -166,24 +154,16 @@ describe('Machine', function () {
   describe('server control', function () {
     var datagram_client = null;
     var socket = null;
-    var onData;
+    var tcp_messages = [];
 
     beforeEach(function () {
       datagram_client = {
         send: function (datagram) {}
       };
-      socket = {
-        on: function (type, listener) {
-          if (type === 'data') {
-            onData = listener;
-          }
-        },
-        once: function (type, listener) {
-          if (type === 'data') {
-            onData = listener;
-          }
-        },
-        write: function () {}
+      tcp_messages = [];
+      socket = new events.EventEmitter();
+      socket.write = function (json) {
+        tcp_messages.push(JSON.parse(json));
       };
     });
 
@@ -203,7 +183,7 @@ describe('Machine', function () {
       machine.init();
       onTcpConnection(socket);
 
-      onData(JSON.stringify({
+      socket.emit('data', JSON.stringify({
         'type': 'start',
         'app': 'abc',
         'branch': 'master'
@@ -230,7 +210,7 @@ describe('Machine', function () {
       machine.init();
       onTcpConnection(socket);
 
-      onData(JSON.stringify({
+      socket.emit('data', JSON.stringify({
         'type': 'stop',
         'app': 'abc',
         'branch': 'master'
@@ -239,6 +219,58 @@ describe('Machine', function () {
       expect(stop_count).to.be(1);
       expect(app).to.be('abc');
       expect(branch).to.be('master');
+    });
+
+
+    it('should challenge the server to create an extra connection for install',
+        function () {
+      var app_manager = {
+        getCurrentVersion: function (app, callback) {
+          callback(null, null);
+        }
+      };
+
+      var machine = new Machine(datagram_client, tcp_server, app_manager, null);
+      machine.init();
+      onTcpConnection(socket);
+
+      socket.emit('data', JSON.stringify({
+        'type': 'install',
+        'apps': { 'abc': 'aaaa1111' },
+        'branch': 'master'
+      }));
+
+      var tcp_message = tcp_messages.slice(-1)[0];
+      expect(tcp_message).to.be.ok();
+      expect(tcp_message.type).to.be('connection-challenge');
+      expect(tcp_message.id).to.be.a('string');
+      expect(tcp_message.bundle).to.eql([ null, 'aaaa1111' ]);
+    });
+
+
+    it('should challenge the server to create an extra connection for upgrade',
+        function () {
+      var app_manager = {
+        getCurrentVersion: function (app, callback) {
+          callback(null, 'aaaa1111');
+        }
+      };
+
+      var machine = new Machine(datagram_client, tcp_server, app_manager, null);
+      machine.init();
+      onTcpConnection(socket);
+
+      socket.emit('data', JSON.stringify({
+        'type': 'install',
+        'apps': { 'abc': 'bbbb2222' },
+        'branch': 'master'
+      }));
+
+      var tcp_message = tcp_messages.slice(-1)[0];
+      expect(tcp_message).to.be.ok();
+      expect(tcp_message.type).to.be('connection-challenge');
+      expect(tcp_message.id).to.be.a('string');
+      expect(tcp_message.bundle).to.eql([ 'aaaa1111', 'bbbb2222' ]);
     });
   });
 
@@ -299,5 +331,5 @@ describe('Machine', function () {
       expect(message['environment']).to.be('_default');
       expect(message['roles']).to.eql([ 'abc', 'efg' ]);
     });
-  })
+  });
 });

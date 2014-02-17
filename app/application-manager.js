@@ -1,8 +1,9 @@
 var async = require('async');
 
 
-var ApplicationManager = function (shell) {
+var ApplicationManager = function (shell, repository_table) {
   this.shell_ = shell;
+  this.repository_table_ = repository_table;
 };
 
 
@@ -131,6 +132,18 @@ ApplicationManager.prototype.getAllStatuses = function (callback) {
         }
       });
     }
+  });
+};
+
+
+ApplicationManager.prototype.getCurrentVersion = function (app, callback) {
+  var repository = this.repository_table_.getRepository(app);
+  if (!repository) {
+    return callback(null, null);
+  }
+
+  repository.getRevisionSha('refs/heads/master', function (err, sha) {
+    callback(err, err ? null : sha);
   });
 };
 

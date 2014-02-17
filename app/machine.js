@@ -1,4 +1,5 @@
 var log = require('../lib/log');
+var uuid = require('node-uuid');
 
 var Datagram = require('../lib/datagram');
 
@@ -14,6 +15,7 @@ var Machine = function (datagram_client, tcp_server, app_manager, git) {
 
   this.in_cluster_ = false;
   this.server_finding_timeout_ = 0;
+  this.challenges_ = {};
 };
 
 
@@ -77,7 +79,9 @@ Machine.prototype.handleServerConnection_ = function (socket) {
   this.in_cluster_ = true;
   this.server_finding_timeout_ = 0;
 
-  socket.on('data', this.handleServerMessage_.bind(this));
+  socket.on('data', function (json) {
+    self.handleServerMessage_(socket, json);
+  });
   socket.once('close', function (had_err) {
     self.in_cluster_ = false;
     self.findServer_();
@@ -87,10 +91,16 @@ Machine.prototype.handleServerConnection_ = function (socket) {
 };
 
 
-Machine.prototype.handleServerMessage_ = function (json) {
+Machine.prototype.handleServerMessage_ = function (socket, json) {
   var message = JSON.parse(json);
 
   switch (message['type']) {
+  case 'install':
+    Object.keys(message['apps']).forEach(function (app) {
+      var target_version = message['apps'][app];
+      this.challengeServer_(socket, app, target_version);
+    }, this);
+    break;
   case 'start':
     this.app_manager_.start(message['app'], message['branch']);
     break;
@@ -110,10 +120,40 @@ Machine.prototype.sendRoleMessage_ = function (socket) {
     'roles': this.roles_
   };
 
-  var json = JSON.stringify(message);
-  socket.write(json, 'utf8', function () {
+  socket.write(JSON.stringify(message), 'utf8', function () {
     self.log('role message sent');
   });
+};
+
+
+Machine.prototype.challengeServer_ = function (socket, app, version) {
+  var self = this;
+
+  this.app_manager_.getCurrentVersion(app, function (err, local_version) {
+    var challenge_id = self.createChallenge_(app, local_version, version);
+    var message = {
+      'type': 'connection-challenge',
+      'id': challenge_id,
+      'bundle': [ local_version, version ]
+    };
+
+    socket.write(JSON.stringify(message), 'utf8', function () {
+      self.log('role message sent');
+    });
+  });
+};
+
+
+Machine.prototype.createChallenge_ = function (app, local_version, version) {
+  var id = uuid.v4().replace(/-/g, '');
+
+  this.challenges_[id] = {
+    app: app,
+    local_version: local_version,
+    version: version
+  };
+
+  return id;
 };
 
 

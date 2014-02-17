@@ -63,6 +63,11 @@ Repository.prototype.listDirectory = function (dirname, rev, callback) {
 };
 
 
+Repository.prototype.getRevisionSha = function (rev, callback) {
+  this.exec('parse-rev', rev, callback);
+};
+
+
 Repository.prototype.exec = function (var_args, callback) {
   var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
   args = this.createArgs_.apply(this, args);
