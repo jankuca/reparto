@@ -58,4 +58,14 @@ CodebaseManager.prototype.getCurrentVersion = function (app, callback) {
 };
 
 
+CodebaseManager.prototype.createBundleStream = function (app, rev_list) {
+  var repository = this.repository_table_.getRepository(app);
+  if (!repository) {
+    return null;
+  }
+
+  return repository.createBundleStream(rev_list);
+};
+
+
 module.exports = CodebaseManager;

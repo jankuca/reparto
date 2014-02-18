@@ -68,6 +68,13 @@ Repository.prototype.getRevisionSha = function (rev, callback) {
 };
 
 
+Repository.prototype.createBundleStream = function (rev_list) {
+  var args = [ 'bundle', 'create', '-', rev_list ];
+  var proc = child_process.spawn('git', args);
+  return proc.stdout;
+};
+
+
 Repository.prototype.exec = function (var_args, callback) {
   var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
   args = this.createArgs_.apply(this, args);

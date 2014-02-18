@@ -120,4 +120,33 @@ describe('CodebaseManager', function () {
     expect(result_count).to.be(1);
     expect(git_log).to.eql([ 'fetch', 'clean', 'reset' ]);
   });
+
+
+  it('should request bundle streams', function () {
+    var stream = null;
+    var app;
+    var rev_list;
+
+    var repository = {
+      createBundleStream: function (_rev_list) {
+        rev_list = _rev_list;
+        stream = {};
+        return stream;
+      }
+    };
+    var repository_table = {
+      getRepository: function (_app) {
+        app = _app;
+        return repository;
+      }
+    };
+
+    var codebase_manager = new CodebaseManager(repository_table);
+    var bundle_stream = codebase_manager.createBundleStream('abc', 'HEAD');
+
+    expect(stream).to.be.ok();
+    expect(bundle_stream).to.be(stream);
+    expect(app).to.be('abc');
+    expect(rev_list).to.be('HEAD');
+  });
 });
