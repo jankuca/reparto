@@ -1,4 +1,5 @@
 var events = require('events');
+var stream = require('stream');
 
 var Datagram = require('../lib/datagram');
 var Machine = require('../app/machine');
@@ -273,6 +274,163 @@ describe('Machine', function () {
       expect(tcp_message['id']).to.be.a('string');
       expect(tcp_message['app']).to.be('abc');
       expect(tcp_message['bundle']).to.eql([ 'aaaa1111', 'bbbb2222' ]);
+    });
+
+
+    it('should not send role messages to challenge sockets', function () {
+      var outgoing_messages = [];
+
+      var machine = new Machine(datagram_client, tcp_server, null);
+      machine.init();
+      onTcpConnection(socket);
+
+      var challenge_socket = new events.EventEmitter();
+      challenge_socket.write = function (chunk) {
+        outgoing_messages.push(String(chunk));
+      };
+      onTcpConnection(challenge_socket);
+
+      expect(outgoing_messages).to.eql([]);
+    });
+
+
+    it('should stay in the cluster after accepting a challenge response',
+        function () {
+    });
+
+
+    describe('accepting bundles', function () {
+      var installer;
+      var install_source;
+      var app_manager;
+
+      var install_count = 0;
+      var bundle_data = '';
+      var destroyed = false;
+      var app = null;
+
+      beforeEach(function () {
+        install_count = 0;
+        bundle_data = '';
+        install_source = null;
+        destroyed = false;
+        app = null;
+
+        installer = new stream.Writable();
+        installer.write = function (chunk) {
+          bundle_data += String(chunk);
+        };
+        installer.once('pipe', function (_source) {
+          install_source = _source;
+        });
+
+        app_manager = {
+          getCurrentVersion: function (_app, callback) {
+            callback(null, 'aaaa1111');
+          },
+          createBundleInstaller: function (_app) {
+            install_count += 1;
+            app = _app;
+            return installer;
+          }
+        };
+      });
+
+
+      var createBundleSocket = function (chunks) {
+        var challenge_socket = new stream.Readable();
+        challenge_socket._read = function () {
+          this.push(chunks.shift() || null);
+        };
+        challenge_socket.destroy = function () {
+          destroyed = true;
+        };
+        return challenge_socket;
+      };
+
+
+      it('should accept bundles preceeded by challenge headers', function () {
+        var machine = new Machine(datagram_client, tcp_server, app_manager)
+        machine.init();
+        onTcpConnection(socket);
+
+        socket.emit('data', JSON.stringify({
+          'type': 'install',
+          'apps': { 'abc': 'bbbb2222' },
+          'branch': 'master'
+        }));
+
+        var tcp_message = tcp_messages.slice(-1)[0];
+        var challenge_id = tcp_message['id'];
+        var challenge_socket = createBundleSocket([
+          new Buffer(JSON.stringify({
+            'challenge': challenge_id,
+            'app': 'abc',
+            'bundle': [ 'aaaa1111', 'bbbb2222' ]
+          }) + '\n'),
+          new Buffer('AAAA'),
+          new Buffer('BBBB')
+        ]);
+        onTcpConnection(challenge_socket);
+
+        expect(install_count).to.be(1);
+        expect(app).to.be('abc');
+        expect(bundle_data).to.be('AAAABBBB');
+        expect(install_source).to.be(challenge_socket);
+      });
+
+
+      it('should reject bundles preceeded by invalid headers', function () {
+        var machine = new Machine(datagram_client, tcp_server, app_manager)
+        machine.init();
+        onTcpConnection(socket);
+
+        socket.emit('data', JSON.stringify({
+          'type': 'install',
+          'apps': { 'abc': 'bbbb2222' },
+          'branch': 'master'
+        }));
+
+        var challenge_socket = createBundleSocket([
+          new Buffer(JSON.stringify({
+            'app': 'abc',
+            'bundle': [ 'aaaa1111', 'bbbb2222' ]
+          }) + '\n'),
+          new Buffer('AAAA'),
+          new Buffer('BBBB')
+        ]);
+        onTcpConnection(challenge_socket);
+
+        expect(install_count).to.be(0);
+        expect(destroyed).to.be(true);
+      });
+
+
+      it('should reject bundles with invalid challenges', function () {
+        var machine = new Machine(datagram_client, tcp_server, app_manager)
+        machine.init();
+        onTcpConnection(socket);
+
+        socket.emit('data', JSON.stringify({
+          'type': 'install',
+          'apps': { 'abc': 'bbbb2222' },
+          'branch': 'master'
+        }));
+
+        var challenge_socket = createBundleSocket([
+          new Buffer(JSON.stringify({
+            'challenge': 'asdf',
+            'app': 'abc',
+            'bundle': [ 'aaaa1111', 'bbbb2222' ]
+          }) + '\n'),
+          new Buffer('AAAA'),
+          new Buffer('BBBB')
+        ]);
+        onTcpConnection(challenge_socket);
+
+        expect(install_count).to.be(0);
+        expect(destroyed).to.be(true);
+      });
     });
   });
 

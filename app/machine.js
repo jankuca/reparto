@@ -72,6 +72,12 @@ Machine.prototype.sendNewMachineDatagram_ = function () {
 Machine.prototype.handleServerConnection_ = function (socket) {
   var self = this;
 
+  if (this.in_cluster_) {
+    // challenge response connection
+    this.handleChallengeResponseConnection_(socket);
+    return;
+  }
+
   this.log('connection accepted');
 
   clearTimeout(this.server_finding_timeout_);
@@ -87,6 +93,22 @@ Machine.prototype.handleServerConnection_ = function (socket) {
   });
 
   this.sendRoleMessage_(socket);
+};
+
+
+Machine.prototype.handleChallengeResponseConnection_ = function (socket) {
+  var self = this;
+  var challenge_header_json = '';
+
+  socket.on('data', function readChallengeResponseHeader(json) {
+    challenge_header_json += json;
+    if (/\}\n$/.test(challenge_header_json)) {
+      socket.removeListener('data', readChallengeResponseHeader);
+
+      var header = JSON.parse(challenge_header_json);
+      self.handleChallengeResponse_(socket, header);
+    }
+  });
 };
 
 
@@ -154,6 +176,26 @@ Machine.prototype.createChallenge_ = function (app, local_version, version) {
   };
 
   return id;
+};
+
+
+Machine.prototype.handleChallengeResponse_ = function (socket, header) {
+  if (!header['challenge']) {
+    socket.destroy();
+    return;
+  }
+
+  var challenge = this.challenges_[header['challenge']];
+  if (!challenge || challenge.app !== header['app'] ||
+      challenge.local_version !== header['bundle'][0] ||
+      challenge.version !== header['bundle'][1]) {
+    socket.destroy();
+    delete this.challenges_[header['challenge']];
+    return;
+  }
+
+  var installer = this.app_manager_.createBundleInstaller(challenge.app);
+  socket.pipe(installer);
 };
 
 
