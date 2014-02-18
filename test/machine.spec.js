@@ -242,9 +242,10 @@ describe('Machine', function () {
 
       var tcp_message = tcp_messages.slice(-1)[0];
       expect(tcp_message).to.be.ok();
-      expect(tcp_message.type).to.be('connection-challenge');
-      expect(tcp_message.id).to.be.a('string');
-      expect(tcp_message.bundle).to.eql([ null, 'aaaa1111' ]);
+      expect(tcp_message['type']).to.be('connection-challenge');
+      expect(tcp_message['id']).to.be.a('string');
+      expect(tcp_message['app']).to.be('abc');
+      expect(tcp_message['bundle']).to.eql([ null, 'aaaa1111' ]);
     });
 
 
@@ -268,9 +269,10 @@ describe('Machine', function () {
 
       var tcp_message = tcp_messages.slice(-1)[0];
       expect(tcp_message).to.be.ok();
-      expect(tcp_message.type).to.be('connection-challenge');
-      expect(tcp_message.id).to.be.a('string');
-      expect(tcp_message.bundle).to.eql([ 'aaaa1111', 'bbbb2222' ]);
+      expect(tcp_message['type']).to.be('connection-challenge');
+      expect(tcp_message['id']).to.be.a('string');
+      expect(tcp_message['app']).to.be('abc');
+      expect(tcp_message['bundle']).to.eql([ 'aaaa1111', 'bbbb2222' ]);
     });
   });
 

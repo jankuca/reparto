@@ -134,6 +134,7 @@ Machine.prototype.challengeServer_ = function (socket, app, version) {
     var message = {
       'type': 'connection-challenge',
       'id': challenge_id,
+      'app': app,
       'bundle': [ local_version, version ]
     };
 
