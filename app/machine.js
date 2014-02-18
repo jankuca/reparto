@@ -4,11 +4,10 @@ var uuid = require('node-uuid');
 var Datagram = require('../lib/datagram');
 
 
-var Machine = function (datagram_client, tcp_server, app_manager, git) {
+var Machine = function (datagram_client, tcp_server, app_manager) {
   this.datagram_client_ = datagram_client;
   this.tcp_server_ = tcp_server;
   this.app_manager_ = app_manager;
-  this.git_ = git;
 
   this.environment_ = '_default';
   this.roles_ = [];

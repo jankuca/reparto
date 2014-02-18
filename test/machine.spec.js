@@ -40,7 +40,7 @@ describe('Machine', function () {
 
   it('should start listening for server connections', function () {
     var datagram_client = { send: function () {} };
-    var machine = new Machine(datagram_client, tcp_server, null, null);
+    var machine = new Machine(datagram_client, tcp_server, null);
 
     machine.init();
     expect(tcp_connection_listener_count).to.be(1);
@@ -65,7 +65,7 @@ describe('Machine', function () {
 
     describe('(type: new-machine)', function () {
       it('should send a new-machine datagram on init', function () {
-        var machine = new Machine(datagram_client, tcp_server, null, null);
+        var machine = new Machine(datagram_client, tcp_server, null);
 
         machine.init();
         expect(datagram_count).to.be(1);
@@ -77,7 +77,7 @@ describe('Machine', function () {
 
       it('should keep sending new-machine datagrams until a server connection',
           function () {
-        var machine = new Machine(datagram_client, tcp_server, null, null);
+        var machine = new Machine(datagram_client, tcp_server, null);
 
         machine.init();
         expect(datagram_count).to.be(1);
@@ -108,7 +108,7 @@ describe('Machine', function () {
 
         it('should send a new-machine datagram on server disconnect',
             function () {
-          var machine = new Machine(datagram_client, tcp_server, null, null);
+          var machine = new Machine(datagram_client, tcp_server, null);
 
           machine.init();
           datagram = null;
@@ -125,7 +125,7 @@ describe('Machine', function () {
 
         it('should keep sending new-machine datagrams after disconnect',
             function () {
-          var machine = new Machine(datagram_client, tcp_server, null, null);
+          var machine = new Machine(datagram_client, tcp_server, null);
 
           machine.init();
           onTcpConnection(socket);
@@ -178,7 +178,7 @@ describe('Machine', function () {
         }
       };
 
-      var machine = new Machine(datagram_client, tcp_server, app_manager, null);
+      var machine = new Machine(datagram_client, tcp_server, app_manager);
 
       machine.init();
       onTcpConnection(socket);
@@ -205,7 +205,7 @@ describe('Machine', function () {
         }
       };
 
-      var machine = new Machine(datagram_client, tcp_server, app_manager, null);
+      var machine = new Machine(datagram_client, tcp_server, app_manager);
 
       machine.init();
       onTcpConnection(socket);
@@ -230,7 +230,7 @@ describe('Machine', function () {
         }
       };
 
-      var machine = new Machine(datagram_client, tcp_server, app_manager, null);
+      var machine = new Machine(datagram_client, tcp_server, app_manager);
       machine.init();
       onTcpConnection(socket);
 
@@ -257,7 +257,7 @@ describe('Machine', function () {
         }
       };
 
-      var machine = new Machine(datagram_client, tcp_server, app_manager, null);
+      var machine = new Machine(datagram_client, tcp_server, app_manager);
       machine.init();
       onTcpConnection(socket);
 
@@ -302,7 +302,7 @@ describe('Machine', function () {
 
 
     it('should report its role to the server', function () {
-      var machine = new Machine(datagram_client, tcp_server, null, null);
+      var machine = new Machine(datagram_client, tcp_server, null);
 
       machine.init(null, 'abc');
       onTcpConnection(socket);
@@ -319,7 +319,7 @@ describe('Machine', function () {
 
 
     it('should support multiple roles', function () {
-      var machine = new Machine(datagram_client, tcp_server, null, null);
+      var machine = new Machine(datagram_client, tcp_server, null);
 
       machine.init(null, [ 'abc', 'efg' ]);
       onTcpConnection(socket);
