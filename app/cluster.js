@@ -98,6 +98,9 @@ Cluster.prototype.handleTcpMessage_ = function (socket, message) {
   case 'versions':
     this.handleVersionMessage_(socket, message);
     break;
+  case 'connection-challenge':
+    this.handleChallengeMessage_(socket, message);
+    break;
   }
 };
 
@@ -188,6 +191,30 @@ Cluster.prototype.instructMachineToModifyApps_ = function (
       'apps': instructions.upgrade
     }));
   }
+};
+
+
+Cluster.prototype.handleChallengeMessage_ = function (socket, message) {
+  var machine = socket.address();
+  var codebase_manager = this.codebase_manager_;
+
+  var app = message['app'];
+  var rev_list = message['bundle'].slice();
+  if (!rev_list[0]) {
+    rev_list.shift();
+  }
+
+  var socket = this.tcp_.connect(machine.port, machine.address);
+  socket.once('connect', function () {
+    socket.write(JSON.stringify({
+      'challenge': message['id'],
+      'app': app,
+      'bundle': message['bundle']
+    }) + '\n');
+
+    var stream = codebase_manager.createBundleStream(app, rev_list.join('..'));
+    stream.pipe(socket);
+  });
 };
 
 

@@ -45,6 +45,9 @@ describe('Cluster', function () {
         tcp_connection_port = port;
 
         socket = socket || new events.EventEmitter();
+        socket.address = function () {
+          return { address: '127.0.0.1', port: 1234 };
+        };
         socket.write = function (json) {
           tcp_messages.push(JSON.parse(json));
         };
@@ -287,6 +290,116 @@ describe('Cluster', function () {
         expect(tcp_messages.length).to.be(1);
         expect(tcp_messages[0]['type']).to.be('upgrade');
         expect(tcp_messages[0]['apps']).to.eql({ 'api': 'bbbb2222' });
+      });
+    });
+
+
+    describe('bundles', function () {
+      var stream = null;
+      var bundle_data;
+      var received_data = '';
+      var ended = false;
+      var codebase;
+
+      beforeEach(function () {
+        received_data = '';
+        ended = false;
+        stream = null;
+        bundle_data = Math.round(999999999 * Math.random()).toString(16);
+        codebase = {
+          createBundleStream: function (app, rev_list) {
+            stream = new events.EventEmitter();
+            stream.pipe = function (dest, options) {
+              stream.on('data', dest.emit.bind(dest, 'data'));
+              if (!options || options.end !== false) {
+                stream.once('end', dest.emit.bind(dest, 'end'));
+              }
+            };
+            return stream;
+          }
+        };
+      });
+
+      var wairForBundle = function () {
+        received_data = '';
+        ended = false;
+        socket.write = function (chunk) {
+          received_data += String(chunk);
+        };
+        socket.on('data', function (chunk) {
+          received_data += String(chunk);
+        });
+        socket.once('end', function () {
+          ended = true;
+        });
+      };
+
+
+      it('should send whole-app bundles to machines when challenged',
+          function () {
+        var cluster = new Cluster(datagram_server, tcp, null, codebase);
+        cluster.init();
+        connect();
+
+        var main_socket = socket;
+        socket = null;
+
+        main_socket.emit('message', JSON.stringify({
+          'type': 'connection-challenge',
+          'id': 'abcd1234',
+          'app': 'abc',
+          'bundle': [ null, 'aaaa1111' ]
+        }));
+        expect(tcp_connection_count).to.be(2);
+        expect(socket).to.be.ok();
+
+        wairForBundle();
+
+        socket.emit('connect');
+        stream.emit('data', bundle_data);
+        stream.emit('end');
+
+        var expected_header_json = JSON.stringify({
+          'challenge': 'abcd1234',
+          'app': 'abc',
+          'bundle': [ null, 'aaaa1111' ]
+        });
+        expect(ended).to.be(true);
+        expect(received_data).to.be(expected_header_json + '\n' + bundle_data);
+      });
+
+
+      it('should send partial bundles to machines when challenged',
+          function () {
+        var cluster = new Cluster(datagram_server, tcp, null, codebase);
+        cluster.init();
+        connect();
+
+        var main_socket = socket;
+        socket = null;
+
+        main_socket.emit('message', JSON.stringify({
+          'type': 'connection-challenge',
+          'id': 'abcd5678',
+          'app': 'abc',
+          'bundle': [ 'aaaa1111', 'bbbb2222' ]
+        }));
+        expect(tcp_connection_count).to.be(2);
+        expect(socket).to.be.ok();
+
+        wairForBundle();
+
+        socket.emit('connect');
+        stream.emit('data', bundle_data);
+        stream.emit('end');
+
+        var expected_header_json = JSON.stringify({
+          'challenge': 'abcd5678',
+          'app': 'abc',
+          'bundle': [ 'aaaa1111', 'bbbb2222' ]
+        });
+        expect(ended).to.be(true);
+        expect(received_data).to.be(expected_header_json + '\n' + bundle_data);
       });
     });
   });
