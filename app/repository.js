@@ -75,6 +75,36 @@ Repository.prototype.createBundleStream = function (rev_list) {
 };
 
 
+Repository.prototype.unbundleFromStream = function (bundle_stream, callback) {
+  var args = [ 'bundle', 'unbundle', '/dev/stdin' ];
+  var proc = child_process.spawn('git', args);
+
+  if (bundle_stream) {
+    bundle_stream.pipe(proc.stdin);
+  }
+
+  if (callback) {
+    var result = '';
+    var err_message = '';
+    proc.stdout.on('data', function (chunk) {
+      result += String(chunk);
+    });
+    proc.stderr.on('data', function (chunk) {
+      err_message += String(chunk);
+    });
+    proc.once('exit', function (code) {
+      var err = null;
+      if (code !== 0) {
+        err = new Error('Command failed: ' + err_message);
+      }
+      callback(err, result, err_message);
+    });
+  }
+
+  return proc;
+};
+
+
 Repository.prototype.exec = function (var_args, callback) {
   var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
   args = this.createArgs_.apply(this, args);
