@@ -1,5 +1,7 @@
 var async = require('async');
 
+var BundleInstaller = require('./bundle-installer');
+
 
 var ApplicationManager = function (shell, repository_table) {
   this.shell_ = shell;
@@ -145,6 +147,17 @@ ApplicationManager.prototype.getCurrentVersion = function (app, callback) {
   repository.getRevisionSha('refs/heads/master', function (err, sha) {
     callback(err, err ? null : sha);
   });
+};
+
+
+ApplicationManager.prototype.createBundleInstaller = function (app) {
+  var repository = this.repository_table_.getRepository(app);
+  if (!repository) {
+    return null;
+  }
+
+  var installer = new BundleInstaller(repository);
+  return installer;
 };
 
 

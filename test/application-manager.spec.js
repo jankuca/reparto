@@ -1,5 +1,6 @@
 
 var ApplicationManager = require('../app/application-manager');
+var BundleInstaller = require('../app/bundle-installer');
 
 
 describe('ApplicationManager', function () {
@@ -129,5 +130,19 @@ describe('ApplicationManager', function () {
         'efg': { 'master': true }
       });
     });
+  });
+
+
+  it('should initiate bundle update installation', function () {
+    var repository_table = {
+      getRepository: function (app) {
+        return {};
+      }
+    };
+
+    var app_manager = new ApplicationManager(shell, repository_table);
+    var installer = app_manager.createBundleInstaller('abc');
+
+    expect(installer).to.be.a(BundleInstaller);
   });
 });
