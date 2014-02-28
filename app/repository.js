@@ -14,6 +14,11 @@ Repository.prototype.fetch = function (remote, callback) {
 };
 
 
+Repository.prototype.merge = function (rev, options, callback) {
+  this.exec('merge', String(rev), options, callback);
+};
+
+
 Repository.prototype.clean = function (options, callback) {
   var command_options = {
     'd': Boolean(options.directories),
