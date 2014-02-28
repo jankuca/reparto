@@ -6,6 +6,7 @@ var Router = require('../app/router');
 describe('Router', function () {
   var http_server = null;
   var request_listener_count = 0;
+  var onRequest;
 
   var createRequest = function (method, url) {
     var request = new http.IncomingMessage();
@@ -69,6 +70,7 @@ describe('Router', function () {
   it('should pass the request and response objects to "request" listeners',
       function () {
     var count = 0;
+    var target;
     var req;
     var res;
 

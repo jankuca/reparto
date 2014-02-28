@@ -16,6 +16,6 @@
     "mocha": "~1.16.2"
   },
   "scripts": {
-    "test": "mocha -R spec -r test/_globals"
+    "test": "mocha -R spec -r test/_globals --check-leaks"
   }
 }

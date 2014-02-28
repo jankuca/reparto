@@ -24,7 +24,7 @@ describe('Cluster', function () {
     tcp_messages = [];
     onDatagram = null;
 
-    handleDatagramServerListener = function (type, listener) {
+    var handleDatagramServerListener = function (type, listener) {
       if (type === 'message') {
         datagram_listener_count += 1;
         expect(listener).to.be.a('function');

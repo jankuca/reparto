@@ -44,6 +44,7 @@ describe('ApplicationManager', function () {
     var statuses = null;
     var status_callback_count = 0;
     var result;
+    var onResult;
 
     beforeEach(function () {
       statuses = {};

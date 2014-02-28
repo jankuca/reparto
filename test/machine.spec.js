@@ -171,6 +171,8 @@ describe('Machine', function () {
 
     it('should start an app based on a server message', function () {
       var start_count = 0;
+      var app;
+      var branch;
       var app_manager = {
         start: function (_app, _branch) {
           start_count += 1;
@@ -198,6 +200,8 @@ describe('Machine', function () {
 
     it('should stop an app based on a server message', function () {
       var stop_count = 0;
+      var app;
+      var branch;
       var app_manager = {
         stop: function (_app, _branch) {
           stop_count += 1;
