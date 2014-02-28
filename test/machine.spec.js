@@ -435,6 +435,55 @@ describe('Machine', function () {
         expect(install_count).to.be(0);
         expect(destroyed).to.be(true);
       });
+
+
+      it('should reject bundles without headers', function () {
+        var machine = new Machine(datagram_client, tcp_server, app_manager)
+        machine.init();
+        onTcpConnection(socket);
+
+        socket.emit('data', JSON.stringify({
+          'type': 'install',
+          'apps': { 'abc': 'bbbb2222' },
+          'branch': 'master'
+        }));
+
+        var challenge_socket = createBundleSocket([
+          new Buffer('AAAA'),
+          new Buffer('BBBB')
+        ]);
+        onTcpConnection(challenge_socket);
+
+        expect(install_count).to.be(0);
+        expect(destroyed).to.be(true);
+      });
+
+
+      it('should reject bundles with malformed headers', function () {
+        var machine = new Machine(datagram_client, tcp_server, app_manager)
+        machine.init();
+        onTcpConnection(socket);
+
+        socket.emit('data', JSON.stringify({
+          'type': 'install',
+          'apps': { 'abc': 'bbbb2222' },
+          'branch': 'master'
+        }));
+
+        var challenge_socket = createBundleSocket([
+          new Buffer(JSON.stringify({
+            'challenge': 'asdf',
+            'app': 'abc',
+            'bundle': [ 'aaaa1111', 'bbbb2222' ]
+          }).substr(1) + '\n'),
+          new Buffer('AAAA'),
+          new Buffer('BBBB')
+        ]);
+        onTcpConnection(challenge_socket);
+
+        expect(install_count).to.be(0);
+        expect(destroyed).to.be(true);
+      });
     });
   });
 

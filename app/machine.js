@@ -102,10 +102,22 @@ Machine.prototype.handleChallengeResponseConnection_ = function (socket) {
 
   socket.on('data', function readChallengeResponseHeader(json) {
     challenge_header_json += json;
+    if (challenge_header_json.trim().substr(0, 1) !== '{') {
+      socket.destroy();
+      return;
+    }
+
     if (/\}\n$/.test(challenge_header_json)) {
       socket.removeListener('data', readChallengeResponseHeader);
 
-      var header = JSON.parse(challenge_header_json);
+      var header = null;
+      try {
+        header = JSON.parse(challenge_header_json);
+      } catch (err) {
+        socket.destroy();
+        return;
+      }
+
       self.handleChallengeResponse_(socket, header);
     }
   });
