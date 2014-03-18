@@ -67,6 +67,36 @@ describe('Router', function () {
   });
 
 
+  it('should allow multiple rules to be set at once',
+      function () {
+    var count = 0;
+    var target;
+
+    var router = new Router(http_server);
+    router.init();
+    router.addRoutes({
+      'GET /abc': 'A',
+      'POST /efg': 'B'
+    });
+
+    router.on('request', function (_target) {
+      count += 1;
+      target = _target;
+    });
+    router.on('error', function (code) {
+      throw new Error('No route (status code ' + code + ')');
+    });
+
+    onRequest(createRequest('GET', '/abc'));
+    expect(count).to.be(1);
+    expect(target).to.be('A');
+
+    onRequest(createRequest('POST', '/efg'));
+    expect(count).to.be(2);
+    expect(target).to.be('B');
+  });
+
+
   it('should pass the request and response objects to "request" listeners',
       function () {
     var count = 0;

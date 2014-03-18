@@ -32,6 +32,14 @@ Router.prototype.when = function (method, pattern, target) {
 };
 
 
+Router.prototype.addRoutes = function (routes) {
+  Object.keys(routes).forEach(function (rule) {
+    var parts = rule.split(' ');
+    this.when(parts[0], parts.slice(1).join(' '), routes[rule]);
+  }, this);
+};
+
+
 Router.prototype.init = function () {
   this.http_server_.on('request', this.handleRequest_.bind(this));
 };
